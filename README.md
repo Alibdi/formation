@@ -15,6 +15,8 @@ Une application web complète pour la gestion du cycle de vie des formations, de
 
 ## 🛠️ Installation
 
+### Développement local
+
 1. **Environnement virtuel & Dépendances** :
    ```bash
    python -m venv venv
@@ -32,6 +34,17 @@ Une application web complète pour la gestion du cycle de vie des formations, de
    ```bash
    python manage.py runserver
    ```
+
+Le lancement local utilise SQLite par défaut. Pour exécuter l'application et PostgreSQL avec Docker, copiez `.env.example` vers `.env`, générez un secret avec `python -c "import secrets; print(secrets.token_urlsafe(64))"`, remplacez aussi le mot de passe PostgreSQL, puis utilisez `DJANGO_DEBUG=true`, `DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1`, `DJANGO_SECURE_SSL_REDIRECT=false` et `DJANGO_SECURE_HSTS_SECONDS=0` avant `docker compose up --build`.
+
+### Déploiement Coolify
+
+1. Créez une ressource **Docker Compose** reliée au dépôt. Coolify doit utiliser `compose.yaml` à la racine.
+2. Configurez le domaine du service `web` sur le port interne `8000`.
+3. Ajoutez les variables de `.env.example` dans la configuration d'environnement Coolify. Définissez `DJANGO_SECRET_KEY` avec un secret généré (ne laissez pas la valeur vide); `DJANGO_ALLOWED_HOSTS` attend le nom d'hôte seul et `CSRF_TRUSTED_ORIGINS` une URL complète, par exemple `https://formation.example.com`.
+4. Déployez. L'image collecte les fichiers statiques, le conteneur applique les migrations puis démarre Gunicorn. PostgreSQL et les fichiers médias sont conservés dans les volumes `postgres_data` et `media_data`.
+
+La base PostgreSQL créée par Compose est vide : les données du `db.sqlite3` local ne sont pas transférées automatiquement. Sauvegardez également les volumes PostgreSQL et médias dans votre stratégie de sauvegarde.
 
 ## 🔐 Accès par défaut (créés par le script de population)
 
