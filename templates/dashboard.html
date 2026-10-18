@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Tableau de Bord - AgencyEd{% endblock %}
+
+{% block content %}
+<div class="view-content">
+    <header class="flex justify-between items-center mb-10">
+        <div>
+            <h2 class="text-4xl font-black text-slate-800 tracking-tight mb-2">Bienvenue, <span id="dash-user-name">...</span></h2>
+            <p class="text-slate-500 font-medium">Voici le résumé de l'activité de formation aujourd'hui.</p>
+        </div>
+        <div class="flex gap-4">
+            <div class="bg-white px-6 py-3 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
+                <div class="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center font-bold" id="stat-matricule">---</div>
+                <div>
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Matricule</p>
+                    <p class="text-sm font-black text-slate-800">Agent ID</p>
+                </div>
+            </div>
+            <div id="service-badge" class="bg-blue-600 px-6 py-3 rounded-2xl shadow-lg shadow-blue-200 flex items-center gap-3 text-white hidden">
+                <i class="fas fa-building text-blue-200"></i>
+                <span class="font-bold text-sm">Service</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Stats Grid -->
+    <div class="grid grid-cols-4 gap-6 mb-10">
+        <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+            <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-4 text-xl shadow-inner">
+                <i class="fas fa-graduation-cap"></i>
+            </div>
+            <p class="text-3xl font-black text-slate-800 mb-1" id="stat-active">0</p>
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Formations Actives</p>
+        </div>
+        <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+            <div class="w-12 h-12 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center mb-4 text-xl shadow-inner">
+                <i class="fas fa-check-double"></i>
+            </div>
+            <p class="text-3xl font-black text-slate-800 mb-1" id="stat-participations">0</p>
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Mes Participations</p>
+        </div>
+        <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+            <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mb-4 text-xl shadow-inner">
+                <i class="fas fa-file-alt"></i>
+            </div>
+            <p class="text-3xl font-black text-slate-800 mb-1" id="stat-docs">0</p>
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Documents Reçus</p>
+        </div>
+        <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+            <div class="w-12 h-12 bg-orange-50 text-orange-600 rounded-2xl flex items-center justify-center mb-4 text-xl shadow-inner">
+                <i class="fas fa-clock"></i>
+            </div>
+            <p class="text-3xl font-black text-slate-800 mb-1" id="stat-pending">0</p>
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">En attente</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-3 gap-10">
+        <div class="col-span-2 space-y-8">
+            <div class="flex justify-between items-center">
+                <h3 class="text-2xl font-black text-slate-800 tracking-tight" id="main-list-title">Formations Recommandées</h3>
+                <a href="/formations/" class="text-blue-600 font-bold text-sm hover:underline">Voir tout <i class="fas fa-arrow-right ml-1"></i></a>
+            </div>
+            <div class="grid grid-cols-2 gap-6" id="training-list">
+                <!-- Skeleton cards -->
+            </div>
+
+            <div id="history-section" class="hidden space-y-8 pt-10">
+                <h3 class="text-2xl font-black text-slate-800 tracking-tight">Mon Historique</h3>
+                <div class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+                    <table class="w-full text-left">
+                        <tbody id="history-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="space-y-8">
+            <h3 class="text-2xl font-black text-slate-800 tracking-tight" id="right-title">Mes Documents</h3>
+            <div class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden" id="mini-doc-list">
+                <!-- List -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function initDashboard() {
+        await initBase(); 
+        document.getElementById('dash-user-name').innerText = currentUser.first_name || currentUser.username;
+        document.getElementById('stat-matricule').innerText = currentUser.matricule || '---';
+        
+        if (currentUser.service_details) {
+            const badge = document.getElementById('service-badge');
+            badge.children[1].innerText = currentUser.service_details.nom;
+            badge.classList.remove('hidden');
+        }
+
+        const [fRes, pRes, dRes] = await Promise.all([
+            fetch('/api/training/formations/'),
+            fetch('/api/training/participations/'),
+            fetch('/api/training/documents/')
+        ]);
+
+        const formations = await fRes.json();
+        const participations = await pRes.json();
+        const documents = await dRes.json();
+
+        document.getElementById('stat-active').innerText = formations.length;
+        document.getElementById('stat-participations').innerText = participations.filter(p => p.statut === 'TERMINE').length;
+        document.getElementById('stat-docs').innerText = documents.length;
+        document.getElementById('stat-pending').innerText = participations.filter(p => p.statut === 'INSCRIT').length;
+
+        const recs = formations.filter(f => f.priorite_pour_mon_service).slice(0, 2);
+        renderMiniFormations(recs);
+        
+        if (currentUser.role === 'AGENT') {
+            document.getElementById('history-section').classList.remove('hidden');
+            renderHistory(participations);
+        }
+        renderMiniDocs(documents.slice(0, 5));
+    }
+
+    function renderMiniFormations(formations) {
+        const container = document.getElementById('training-list');
+        if (formations.length === 0) {
+            container.innerHTML = '<p class="text-slate-400 font-medium">Aucune recommandation pour le moment.</p>';
+            return;
+        }
+        container.innerHTML = formations.map(f => `
+            <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden group">
+                <div class="absolute top-0 right-0 p-4">
+                    <span class="px-2 py-1 ${f.type === 'LOCALE' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600'} text-[10px] font-black rounded-lg uppercase">${f.type}</span>
+                </div>
+                <h4 class="font-black text-slate-800 text-lg mb-4 pr-10 leading-tight">${f.titre}</h4>
+                <div class="flex items-center text-slate-500 text-xs gap-2 mb-6">
+                    <i class="far fa-calendar"></i>
+                    <span>${new Date(f.date_debut).toLocaleDateString()}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div class="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div class="h-full bg-blue-600" style="width: ${(f.participant_count/f.capacite)*100}%"></div>
+                    </div>
+                    <span class="text-[10px] font-bold text-slate-400">${f.participant_count}/${f.capacite}</span>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function renderHistory(participations) {
+        const container = document.getElementById('history-table-body');
+        const history = participations.filter(p => p.statut === 'TERMINE' || p.statut === 'VALIDE');
+        if (history.length === 0) {
+            container.innerHTML = '<tr><td class="p-8 text-center text-slate-400">Aucun historique</td></tr>';
+            return;
+        }
+        container.innerHTML = history.map(p => `
+            <tr class="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                <td class="p-4">
+                    <p class="text-sm font-bold text-slate-800">${p.formation_details.titre}</p>
+                    <p class="text-[10px] text-slate-400">${new Date(p.formation_details.date_debut).toLocaleDateString()}</p>
+                </td>
+                <td class="p-4 text-right">
+                    <span class="px-2 py-1 ${p.statut === 'TERMINE' ? 'bg-purple-50 text-purple-600' : 'bg-green-50 text-green-600'} rounded text-[10px] font-bold uppercase">${p.statut}</span>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function renderMiniDocs(docs) {
+        const container = document.getElementById('mini-doc-list');
+        if (docs.length === 0) {
+            container.innerHTML = '<p class="p-8 text-center text-slate-400 text-sm">Aucun document</p>';
+            return;
+        }
+        container.innerHTML = docs.map(d => `
+            <a href="${d.fichier}" target="_blank" class="flex items-center gap-4 p-4 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0">
+                <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shadow-sm">
+                    <i class="fas fa-file-pdf"></i>
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm font-bold text-slate-800 truncate">${d.type}</p>
+                    <p class="text-[10px] font-medium text-slate-400">${new Date(d.date_upload).toLocaleDateString()}</p>
+                </div>
+                <i class="fas fa-chevron-right text-slate-300 text-xs"></i>
+            </a>
+        `).join('');
+    }
+
+    initDashboard();
+</script>
+{% endblock %}

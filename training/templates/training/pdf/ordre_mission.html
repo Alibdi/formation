@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Ordre de Mission</title>
+    <style>
+        body { font-family: sans-serif; padding: 40px; color: #333; }
+        .header { text-align: center; border-bottom: 2px solid #2563eb; margin-bottom: 30px; padding-bottom: 10px; }
+        .title { font-size: 24px; font-weight: bold; color: #1e40af; }
+        .content { margin-top: 20px; line-height: 1.6; }
+        .section { margin-bottom: 20px; }
+        .label { font-weight: bold; color: #4b5563; }
+        .footer { margin-top: 50px; text-align: right; }
+        .signature { margin-top: 40px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="title">ORDRE DE MISSION</div>
+    </div>
+
+    <div class="content">
+        <div class="section">
+            <p><span class="label">Agent :</span> {{ agent.get_full_name }} ({{ agent.matricule }})</p>
+            <p><span class="label">Service :</span> {{ agent.service.nom }}</p>
+        </div>
+
+        <div class="section">
+            <p>L'agent susnommé est autorisé à participer à la formation suivante :</p>
+            <p><span class="label">Formation :</span> {{ formation.titre }}</p>
+            <p><span class="label">Lieu :</span> {{ formation.lieu }}</p>
+            <p><span class="label">Dates :</span> Du {{ formation.date_debut|date:"d/m/Y" }} au {{ formation.date_fin|date:"d/m/Y" }}</p>
+        </div>
+
+        <div class="section">
+            <p>Cette mission est validée le {{ participation.date_validation|date:"d/m/Y" }}.</p>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Fait à ........................., le {{ participation.date_validation|date:"d/m/Y" }}</p>
+        <div class="signature">
+            <p><strong>La Direction / Le Responsable</strong></p>
+        </div>
+    </div>
+</body>
+</html>

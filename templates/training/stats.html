@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Statistiques - AgencyEd{% endblock %}
+
+{% block content %}
+<div class="view-content">
+    <div class="flex justify-between items-center mb-10">
+        <div>
+            <h2 class="text-4xl font-black text-slate-800 tracking-tight mb-2">Analyse des Formations</h2>
+            <p class="text-slate-500 font-medium">Visualisez l'impact et la progression de vos programmes.</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-10">
+        <div class="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm flex flex-col items-center">
+            <h4 class="text-xl font-black text-slate-800 mb-8 self-start">Répartition par Type</h4>
+            <div class="w-64 h-64">
+                <canvas id="chart-types"></canvas>
+            </div>
+        </div>
+        <div class="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm flex flex-col items-center">
+            <h4 class="text-xl font-black text-slate-800 mb-8 self-start">Participations Mensuelles</h4>
+            <div class="w-full h-64">
+                <canvas id="chart-months"></canvas>
+            </div>
+        </div>
+        <div class="col-span-2 bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm">
+            <h4 class="text-xl font-black text-slate-800 mb-8">Capacité vs Inscriptions réelles</h4>
+            <div class="w-full h-80">
+                <canvas id="chart-capacity"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function initStats() {
+        await initBase();
+        const fRes = await fetch('/api/training/formations/');
+        const formations = await fRes.json();
+        renderCharts(formations);
+    }
+
+    function renderCharts(list) {
+        // Types Chart
+        const typeCounts = list.reduce((acc, f) => { acc[f.type] = (acc[f.type] || 0) + 1; return acc; }, {});
+        new Chart(document.getElementById('chart-types'), {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(typeCounts),
+                datasets: [{ data: Object.values(typeCounts), backgroundColor: ['#2563eb', '#f97316'] }]
+            },
+            options: { cutout: '70%', plugins: { legend: { position: 'bottom' } } }
+        });
+
+        // Capacity Chart
+        new Chart(document.getElementById('chart-capacity'), {
+            type: 'bar',
+            data: {
+                labels: list.map(f => f.titre.substring(0, 15) + '...'),
+                datasets: [
+                    { label: 'Participation', data: list.map(f => f.participant_count), backgroundColor: '#2563eb' },
+                    { label: 'Capacité', data: list.map(f => f.capacite), backgroundColor: '#e2e8f0' }
+                ]
+            },
+            options: { responsive: true, scales: { y: { beginAtZero: true } } }
+        });
+
+        // Monthly Chart
+        const monthNames = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"];
+        const monthCounts = Array(12).fill(0);
+        list.forEach(f => { monthCounts[new Date(f.date_debut).getMonth()]++; });
+        new Chart(document.getElementById('chart-months'), {
+            type: 'line',
+            data: {
+                labels: monthNames,
+                datasets: [{ label: 'Formations', data: monthCounts, borderColor: '#2563eb', tension: 0.4, fill: true, backgroundColor: 'rgba(37, 99, 235, 0.1)' }]
+            }
+        });
+    }
+
+    initStats();
+</script>
+{% endblock %}

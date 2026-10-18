@@ -1,0 +1,328 @@
+{% extends "base.html" %}
+
+{% block title %}Catalogue des Formations - AgencyEd{% endblock %}
+
+{% block content %}
+<div class="view-content">
+    <div class="flex justify-between items-center mb-10">
+        <div>
+            <h2 class="text-4xl font-black text-slate-800 tracking-tight mb-2">Catalogue des Formations</h2>
+            <p class="text-slate-500 font-medium">Découvrez et inscrivez-vous aux formations disponibles.</p>
+        </div>
+        <div class="flex gap-4">
+            <button id="btn-assign-agent" class="bg-blue-50 text-blue-600 px-6 py-4 rounded-2xl font-black border border-blue-100 hover:bg-blue-100 transition-all flex items-center gap-3 hidden">
+                <i class="fas fa-user-plus"></i>
+                <span>Inscrire un Agent</span>
+            </button>
+            <button id="btn-new-formation" class="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black shadow-xl shadow-slate-200 hover:bg-slate-800 transition-all flex items-center gap-3 hidden">
+                <i class="fas fa-plus"></i>
+                <span>Nouvelle Formation</span>
+            </button>
+        </div>
+    </div>
+...
+<!-- Modal Inscrire Agent -->
+<div id="modal-assign" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
+    <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden transform scale-95 transition-transform duration-300">
+        <div class="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <h3 class="text-xl font-black text-slate-800">Inscrire un Agent</h3>
+            <button onclick="closeModal('modal-assign')" class="text-slate-400 hover:text-red-500 transition-colors"><i class="fas fa-times text-xl"></i></button>
+        </div>
+        <form id="form-assign" class="p-8 space-y-6">
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Sélectionner la Formation</label>
+                <select name="formation" id="assign-formation-select" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"></select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Rechercher l'Agent (Nom ou Matricule)</label>
+                <div class="relative">
+                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
+                    <input type="text" id="agent-search-input" placeholder="Commencez à taper..." class="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+                    <input type="hidden" name="agent" id="selected-agent-id">
+                    <div id="agent-autocomplete-results" class="absolute w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 hidden max-h-60 overflow-y-auto">
+                        <!-- Results -->
+                    </div>
+                </div>
+            </div>
+            <button type="submit" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">Valider l'inscription</button>
+        </form>
+    </div>
+</div>
+
+    <!-- Search & Filter -->
+    <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm mb-10 flex gap-4">
+        <div class="flex-1 relative">
+            <i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input type="text" oninput="filterFormations(this.value)" placeholder="Rechercher une formation, un lieu..." class="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500/20 transition-all font-medium text-slate-700">
+        </div>
+        <select class="px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-slate-600">
+            <option>Tous les types</option>
+            <option>Locale</option>
+            <option>Externe</option>
+        </select>
+    </div>
+
+    <div class="grid grid-cols-3 gap-8" id="training-full-list">
+        <!-- Cards will be injected here -->
+    </div>
+</div>
+
+<!-- Modal Formation -->
+<div id="modal-formation" class="fixed inset-0 bg-slate-800/40 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
+    <div class="bg-white w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden transform scale-95 transition-transform duration-300">
+        <div class="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <h3 class="text-xl font-black text-slate-800">Nouvelle Formation</h3>
+            <button onclick="closeModal('modal-formation')" class="text-slate-400 hover:text-red-500 transition-colors"><i class="fas fa-times text-xl"></i></button>
+        </div>
+        <form id="form-formation" class="p-8 space-y-6">
+            <div class="grid grid-cols-2 gap-6">
+                <div class="col-span-2">
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Titre de la formation</label>
+                    <input type="text" name="titre" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Type</label>
+                    <select name="type" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
+                        <option value="LOCALE">Locale</option>
+                        <option value="EXTERNE">Externe</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Capacité</label>
+                    <input type="number" name="capacite" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Statut</label>
+                    <select name="statut" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
+                        <option value="PUBLIEE">Publiée</option>
+                        <option value="BROUILLON">Brouillon</option>
+                        <option value="ARCHIVEE">Archivée</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Date début</label>
+                    <input type="datetime-local" name="date_debut" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Date fin</label>
+                    <input type="datetime-local" name="date_fin" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
+                </div>
+                <div class="col-span-2">
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Lieu</label>
+                    <input type="text" name="lieu" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
+                </div>
+            </div>
+            <button type="submit" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">Créer la formation</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let allFormations = [];
+    let myParticipations = [];
+
+    async function initFormations() {
+        await initBase();
+        if (currentUser.role === 'ADMIN' || currentUser.role === 'OPERATEUR') {
+            document.getElementById('btn-new-formation').classList.remove('hidden');
+            document.getElementById('btn-assign-agent').classList.remove('hidden');
+            document.getElementById('btn-new-formation').onclick = () => openModal('modal-formation');
+            document.getElementById('btn-assign-agent').onclick = async () => {
+                await fillAssignSelects();
+                openModal('modal-assign');
+            };
+        }
+        await refreshData();
+    }
+
+    let allUsers = [];
+    async function fillAssignSelects() {
+        const [fRes, uRes] = await Promise.all([
+            fetch('/api/training/formations/'),
+            fetch('/api/core/users/')
+        ]);
+        const formations = await fRes.json();
+        allUsers = (await uRes.json()).filter(u => u.role === 'AGENT');
+        
+        document.getElementById('assign-formation-select').innerHTML = formations.map(f => `<option value="${f.id}">${f.titre}</option>`).join('');
+    }
+
+    document.getElementById('agent-search-input').addEventListener('input', (e) => {
+        const q = e.target.value.toLowerCase();
+        const results = document.getElementById('agent-autocomplete-results');
+        if (q.length < 1) {
+            results.classList.add('hidden');
+            return;
+        }
+
+        const filtered = allUsers.filter(u => 
+            u.first_name.toLowerCase().includes(q) || 
+            u.last_name.toLowerCase().includes(q) || 
+            (u.matricule && u.matricule.toLowerCase().includes(q))
+        );
+
+        if (filtered.length === 0) {
+            results.innerHTML = '<p class="p-4 text-xs text-slate-400">Aucun agent trouvé</p>';
+        } else {
+            results.innerHTML = filtered.map(u => `
+                <div onclick="selectAgent(${u.id}, '${u.first_name} ${u.last_name} (${u.matricule || 'Sans matricule'})')" class="p-4 hover:bg-blue-50 cursor-pointer border-b border-slate-50 last:border-0 transition-colors">
+                    <p class="text-sm font-bold text-slate-800">${u.first_name} ${u.last_name}</p>
+                    <p class="text-[10px] text-slate-400 font-mono uppercase">${u.matricule || 'ID: ' + u.id}</p>
+                </div>
+            `).join('');
+        }
+        results.classList.remove('hidden');
+    });
+
+    function selectAgent(id, label) {
+        document.getElementById('selected-agent-id').value = id;
+        document.getElementById('agent-search-input').value = label;
+        document.getElementById('agent-autocomplete-results').classList.add('hidden');
+    }
+
+    document.getElementById('form-assign').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const agentId = document.getElementById('selected-agent-id').value;
+        if (!agentId) {
+            toast('Veuillez sélectionner un agent dans la liste', 'error');
+            return;
+        }
+        const data = {
+            formation: document.getElementById('assign-formation-select').value,
+            agent: agentId
+        };
+        const res = await fetch('/api/training/participations/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify(data)
+        });
+        if (res.ok) {
+            toast('Agent inscrit avec succès !');
+            closeModal('modal-assign');
+            document.getElementById('form-assign').reset();
+            document.getElementById('selected-agent-id').value = '';
+            refreshData();
+        } else {
+            const err = await res.json();
+            toast(err.error || 'Erreur', 'error');
+        }
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('#agent-search-input') && !e.target.closest('#agent-autocomplete-results')) {
+            document.getElementById('agent-autocomplete-results').classList.add('hidden');
+        }
+    });
+
+    async function refreshData() {
+        const [fRes, pRes] = await Promise.all([
+            fetch('/api/training/formations/'),
+            fetch('/api/training/participations/')
+        ]);
+        allFormations = await fRes.json();
+        myParticipations = await pRes.json();
+        renderFormations(allFormations);
+    }
+
+    function renderFormations(list) {
+        const container = document.getElementById('training-full-list');
+        container.innerHTML = list.map(f => {
+            const isFull = f.participant_count >= f.capacite;
+            const myPart = myParticipations.find(p => p.formation === f.id);
+            return `
+            <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl transition-all relative group flex flex-col h-full">
+                <div class="absolute top-0 right-0 p-4 flex gap-2">
+                    ${(currentUser.role === 'ADMIN' || currentUser.role === 'OPERATEUR') ? `
+                        <span class="px-2 py-1 ${f.statut === 'PUBLIEE' ? 'bg-green-50 text-green-600' : 'bg-slate-100 text-slate-500'} text-[9px] font-bold rounded-lg border border-slate-100 uppercase">${f.statut}</span>
+                    ` : ''}
+                    ${f.priorite_pour_mon_service ? `
+                        <span class="px-3 py-1 bg-amber-50 text-amber-600 border border-amber-100 text-[10px] font-black rounded-full uppercase"><i class="fas fa-star mr-1"></i>Priorité</span>
+                    ` : ''}
+                    <span class="px-3 py-1 ${f.type === 'LOCALE' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-orange-50 text-orange-600 border-orange-100'} border text-[10px] font-black rounded-full uppercase">${f.type}</span>
+                </div>
+                <h4 class="font-black text-slate-800 text-xl mb-3 pr-12 leading-tight">${f.titre}</h4>
+                <div class="space-y-3 mb-8">
+                    <div class="flex items-center text-slate-500 text-sm gap-3">
+                        <i class="far fa-calendar w-5"></i>
+                        <span class="font-medium">${new Date(f.date_debut).toLocaleDateString()}</span>
+                    </div>
+                    <div class="flex items-center text-slate-500 text-sm gap-3">
+                        <i class="fas fa-map-marker-alt w-5"></i>
+                        <span class="font-medium">${f.lieu}</span>
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-between pt-6 border-t border-slate-50 mt-auto">
+                    <div class="flex flex-col">
+                        <span class="text-[10px] font-bold text-slate-400 mb-1.5 uppercase">${f.participant_count}/${f.capacite} Participants</span>
+                        <div class="w-32 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div class="h-full bg-blue-600 transition-all duration-500" style="width: ${(f.participant_count/f.capacite)*100}%"></div>
+                        </div>
+                    </div>
+                    
+                    ${myPart ? `
+                        <span class="px-4 py-2 bg-slate-100 text-slate-500 rounded-xl text-xs font-bold border border-slate-200">Déjà inscrit</span>
+                    ` : isFull ? `
+                        <span class="px-4 py-2 bg-red-50 text-red-500 rounded-xl text-xs font-bold border border-red-100">Complet</span>
+                    ` : `
+                        <button onclick="register(${f.id})" class="bg-blue-600 text-white px-6 py-2.5 rounded-xl text-sm font-black hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all active:scale-95">S'inscrire</button>
+                    `}
+                </div>
+            </div>
+        `}).join('');
+    }
+
+    function filterFormations(query) {
+        const q = query.toLowerCase();
+        const filtered = allFormations.filter(f => f.titre.toLowerCase().includes(q) || f.lieu.toLowerCase().includes(q));
+        renderFormations(filtered);
+    }
+
+    async function register(id) {
+        const res = await fetch('/api/training/participations/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ formation: id, agent: currentUser.id })
+        });
+        if (res.ok) {
+            toast('Inscription réussie !');
+            refreshData();
+        } else {
+            toast('Erreur lors de l\'inscription', 'error');
+        }
+    }
+
+    function openModal(id) {
+        const el = document.getElementById(id);
+        el.classList.remove('hidden');
+        setTimeout(() => { el.classList.add('opacity-100'); el.children[0].classList.add('scale-100'); }, 10);
+    }
+
+    function closeModal(id) {
+        const el = document.getElementById(id);
+        el.classList.remove('opacity-100');
+        el.children[0].classList.remove('scale-100');
+        setTimeout(() => el.classList.add('hidden'), 300);
+    }
+
+    document.getElementById('form-formation').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+        const res = await fetch('/api/training/formations/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify(data)
+        });
+        if (res.ok) {
+            toast('Formation créée !');
+            closeModal('modal-formation');
+            refreshData();
+        }
+    });
+
+    initFormations();
+</script>
+{% endblock %}
